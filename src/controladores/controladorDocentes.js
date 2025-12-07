@@ -6,7 +6,15 @@ const Clases = require('../modelos/Clases');
 const { Op } = require('sequelize');
 const argon2 = require('argon2');
 const { generarLogin, generarContrasenaAleatoria, generarLoginUnico } = require('../utilidades/generadorCredenciales');
-const { enviarCorreo, generarPlantillaCorreo } = require('../configuraciones/correo');
+
+// Usar Resend si está configurado, sino usar nodemailer
+const usarResend = process.env.RESEND_API_KEY ? true : false;
+const correoModule = usarResend 
+    ? require('../configuraciones/correoResend')
+    : require('../configuraciones/correo');
+const { enviarCorreo, generarPlantillaCorreo } = correoModule;
+
+console.log(`📧 Usando servicio de correo: ${usarResend ? 'Resend' : 'Nodemailer (SMTP)'}`);
 
 // Listar todos los docentes
 const ListarDocentes = async (req, res) => {
