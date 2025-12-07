@@ -242,13 +242,12 @@ exports.CargarDesdeExcel = async (req, res) => {
 
         const { aulaId } = req.body;
 
-        // Leer el archivo Excel
-        const workbook = XLSX.readFile(req.file.path);
+        // Leer el archivo Excel desde el buffer (memoria)
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = 'Sheet1';
         
         // Verificar que exista la hoja Sheet1
         if (!workbook.Sheets[sheetName]) {
-            fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: 'El archivo no contiene una hoja llamada "Sheet1"' });
         }
 
@@ -262,7 +261,6 @@ exports.CargarDesdeExcel = async (req, res) => {
         const fechaFinCell = sheet['B5'];
 
         if (!codigoClaseCell || !codigoClaseCell.v) {
-            fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: 'No se encontró el código de clase en la celda B1' });
         }
 
@@ -274,7 +272,6 @@ exports.CargarDesdeExcel = async (req, res) => {
 
         // Validar que se haya proporcionado el nombre de la clase
         if (!nombreClase) {
-            fs.unlinkSync(req.file.path);
             return res.status(400).json({ 
                 error: 'No se encontró el nombre de clase en la celda B2. Es requerido para crear o buscar la clase.' 
             });
@@ -480,9 +477,6 @@ exports.CargarDesdeExcel = async (req, res) => {
                 correo
             });
         }
-
-        // Eliminar el archivo temporal
-        fs.unlinkSync(req.file.path);
 
         if (estudiantes.length === 0) {
             return res.status(400).json({
@@ -733,9 +727,6 @@ exports.CargarDesdeExcel = async (req, res) => {
 
     } catch (error) {
         // Eliminar archivo temporal en caso de error
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
         console.error('Error al procesar archivo Excel:', error);
         res.status(500).json({ error: 'Error al procesar el archivo Excel', detalle: error.message });
     }

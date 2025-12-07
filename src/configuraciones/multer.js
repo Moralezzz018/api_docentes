@@ -1,18 +1,9 @@
 const multer = require('multer');
 const path = require('path');
 
-// Configuración de almacenamiento
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Usar path.join para asegurar la ruta correcta
-        cb(null, path.join(__dirname, '../../uploads'));
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, `estudiantes-${uniqueSuffix}${ext}`);
-    }
-});
+// Configuración de almacenamiento en MEMORIA (para Railway)
+// Los archivos se almacenan temporalmente en req.file.buffer
+const storage = multer.memoryStorage();
 
 // Filtro de archivos - solo Excel
 const fileFilter = (req, file, cb) => {
