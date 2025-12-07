@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { enviarCorreo } = require('../configuraciones/correo');
+
+// Usar Resend si está configurado, sino usar nodemailer
+const usarResend = process.env.RESEND_API_KEY ? true : false;
+const correoModule = usarResend 
+    ? require('../configuraciones/correoResend')
+    : require('../configuraciones/correo');
+const { enviarCorreo } = correoModule;
 
 /**
  * @swagger

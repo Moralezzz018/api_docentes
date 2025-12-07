@@ -8,7 +8,14 @@ const Clase = require('../modelos/Clases');
 const Periodo = require('../modelos/Periodos');
 const Parcial = require('../modelos/Parciales');
 const Secciones = require('../modelos/Secciones');
-const { enviarCorreo, generarPlantillaCorreo } = require('../configuraciones/correo');
+
+// Usar Resend si está configurado, sino usar nodemailer
+const usarResend = process.env.RESEND_API_KEY ? true : false;
+const correoModule = usarResend 
+    ? require('../configuraciones/correoResend')
+    : require('../configuraciones/correo');
+const { enviarCorreo, generarPlantillaCorreo } = correoModule;
+
 const path = require('path');
 const fs = require('fs');
 

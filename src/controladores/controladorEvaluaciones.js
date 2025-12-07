@@ -8,7 +8,13 @@ const Clases = require('../modelos/Clases');
 const Secciones = require('../modelos/Secciones');
 const EstructuraCalificacion = require('../modelos/EstructuraCalificacion');
 const { validationResult } = require('express-validator');
-const { enviarCorreo, generarPlantillaCorreo } = require('../configuraciones/correo');
+
+// Usar Resend si está configurado, sino usar nodemailer
+const usarResend = process.env.RESEND_API_KEY ? true : false;
+const correoModule = usarResend 
+    ? require('../configuraciones/correoResend')
+    : require('../configuraciones/correo');
+const { enviarCorreo, generarPlantillaCorreo } = correoModule;
 
 exports.Listar = async (req, res) => {
   // Validar autenticación

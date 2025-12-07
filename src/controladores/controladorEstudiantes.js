@@ -13,7 +13,13 @@ const fs = require('fs');
 const {Op} = require('sequelize');
 const argon2 = require('argon2');
 const { generarLogin, generarContrasenaAleatoria, generarLoginUnico } = require('../utilidades/generadorCredenciales');
-const { enviarCorreo } = require('../configuraciones/correo');
+
+// Usar Resend si está configurado, sino usar nodemailer
+const usarResend = process.env.RESEND_API_KEY ? true : false;
+const correoModule = usarResend 
+    ? require('../configuraciones/correoResend')
+    : require('../configuraciones/correo');
+const { enviarCorreo } = correoModule;
 
 // Helper: generar nombre del periodo según fechaInicio (IP / IIP / IIIP + yy)
 const generarNombrePeriodo = (fechaInicio) => {

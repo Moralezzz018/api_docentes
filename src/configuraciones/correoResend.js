@@ -7,7 +7,21 @@ const enviarCorreoResend = async (destinatarios, asunto, cuerpoHTML) => {
         const apiKey = process.env.RESEND_API_KEY;
         
         if (!apiKey) {
-            throw new Error('RESEND_API_KEY no está configurada');
+            const error = new Error('RESEND_API_KEY no está configurada');
+            registrarFallido(error);
+            throw error;
+        }
+
+        // Normalizar destinatarios a array si es string
+        let destinatariosArray = Array.isArray(destinatarios) ? destinatarios : [destinatarios];
+        
+        // Filtrar correos válidos
+        destinatariosArray = destinatariosArray.filter(email => email && typeof email === 'string' && email.includes('@'));
+        
+        if (destinatariosArray.length === 0) {
+            const error = new Error('No hay destinatarios válidos');
+            registrarFallido(error);
+            throw error;
         }
 
         const response = await fetch('https://api.resend.com/emails', {
@@ -18,7 +32,7 @@ const enviarCorreoResend = async (destinatarios, asunto, cuerpoHTML) => {
             },
             body: JSON.stringify({
                 from: process.env.EMAIL_FROM || 'Sistema Académico <onboarding@resend.dev>',
-                to: destinatarios,
+                to: destinatariosArray,
                 subject: asunto,
                 html: cuerpoHTML
             })
@@ -27,16 +41,29 @@ const enviarCorreoResend = async (destinatarios, asunto, cuerpoHTML) => {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(`Resend API error: ${JSON.stringify(data)}`);
+            const error = new Error(`Resend API error (${response.status}): ${data.message || JSON.stringify(data)}`);
+            registrarFallido(error);
+            console.error('❌ Error de Resend API:', {
+                status: response.status,
+                data: data,
+                destinatarios: destinatariosArray
+            });
+            throw error;
         }
 
         registrarEnviado();
-        console.log('✅ Correo enviado exitosamente:', data);
+        console.log('✅ Correo enviado exitosamente con Resend:', {
+            id: data.id,
+            destinatarios: destinatariosArray
+        });
         return { success: true, data };
 
     } catch (error) {
-        registrarFallido();
-        console.error('❌ Error al enviar correo con Resend:', error);
+        // Solo registrar si no se registró antes
+        if (error.message && !error.message.includes('RESEND_API_KEY') && !error.message.includes('Resend API error') && !error.message.includes('destinatarios válidos')) {
+            registrarFallido(error);
+        }
+        console.error('❌ Error al enviar correo con Resend:', error.message || error);
         throw error;
     }
 };
