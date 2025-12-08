@@ -42,6 +42,7 @@ const corsOptions = {
       'http://localhost:5173',
       'https://frontend-docentes.pages.dev',
       'https://docentes.nmorales.site',
+      'https://frontenddocentes-production.up.railway.app/',
       /^https:\/\/.*\.frontend-docentes\.pages\.dev$/
     ];
     
