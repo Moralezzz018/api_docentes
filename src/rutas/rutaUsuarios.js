@@ -16,6 +16,7 @@ const { validarToken } = require('../configuraciones/passport');
  *         - login
  *         - correo
  *         - contrasena
+ *         - rolId
  *       properties:
  *         id:
  *           type: integer
@@ -45,23 +46,31 @@ const { validarToken } = require('../configuraciones/passport');
  *           type: string
  *           format: password
  *           description: Contraseña del usuario (encriptada en la base de datos)
+ *         requiereCambioContrasena:
+ *           type: boolean
+ *           description: Indica si el usuario debe cambiar su contraseña en el próximo inicio de sesión
+ *           default: false
  *         estado:
  *           type: string
  *           enum: [AC, IN, BL]
  *           description: Estado del usuario (Activo, Inactivo o Bloqueado)
  *           default: AC
+ *         rolId:
+ *           type: integer
+ *           description: ID del rol del usuario (1=ADMIN, 2=DOCENTE, 3=ESTUDIANTE - verificar en tu BD)
  *         docenteId:
  *           type: integer
- *           description: ID del docente asociado al usuario
+ *           description: ID del docente asociado al usuario (solo para rol DOCENTE)
+ *         estudianteId:
+ *           type: integer
+ *           description: ID del estudiante asociado al usuario (solo para rol ESTUDIANTE)
  *       example:
- *         login: dmolina
- *         correo: daniel@example.com
- *         contrasena: "123456"
- *         pin: "904512"
- *         pinExpiracion: "2025-11-12T23:59:00Z"
- *         intentos: 0
+ *         login: admin
+ *         correo: admin@sistema.com
+ *         contrasena: "Admin123!"
+ *         requiereCambioContrasena: false
  *         estado: AC
- *         docenteId: 1
+ *         rolId: 1
  *     UsuarioImagen:
  *       type: object
  *       properties:
@@ -309,23 +318,97 @@ rutas.get('/listar', validarToken, controladorUsuarios.Listar);
  * @swagger
  * /usuarios/guardar:
  *   post:
- *     summary: Guardar un nuevo usuario
+ *     summary: Crear un nuevo usuario (ADMIN, DOCENTE o ESTUDIANTE)
  *     tags: [Usuarios]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Usuario'
+ *             type: object
+ *             required:
+ *               - login
+ *               - correo
+ *               - contrasena
+ *               - rolId
+ *             properties:
+ *               login:
+ *                 type: string
+ *                 description: Nombre de usuario único
+ *                 example: admin
+ *               correo:
+ *                 type: string
+ *                 format: email
+ *                 description: Correo electrónico único
+ *                 example: admin@sistema.com
+ *               contrasena:
+ *                 type: string
+ *                 format: password
+ *                 description: Contraseña del usuario (se encriptará automáticamente)
+ *                 example: Admin123!
+ *               rolId:
+ *                 type: integer
+ *                 description: ID del rol (1=ADMIN, 2=DOCENTE, 3=ESTUDIANTE)
+ *                 example: 1
+ *               requiereCambioContrasena:
+ *                 type: boolean
+ *                 description: Si debe cambiar contraseña al iniciar sesión
+ *                 default: false
+ *                 example: false
+ *               estado:
+ *                 type: string
+ *                 enum: [AC, IN, BL]
+ *                 description: Estado del usuario
+ *                 default: AC
+ *                 example: AC
+ *               docenteId:
+ *                 type: integer
+ *                 description: ID del docente (solo si rolId es DOCENTE)
+ *                 nullable: true
+ *               estudianteId:
+ *                 type: integer
+ *                 description: ID del estudiante (solo si rolId es ESTUDIANTE)
+ *                 nullable: true
+ *           examples:
+ *             admin:
+ *               summary: Crear usuario ADMIN
+ *               value:
+ *                 login: admin
+ *                 correo: admin@sistema.com
+ *                 contrasena: Admin123!
+ *                 rolId: 1
+ *                 requiereCambioContrasena: false
+ *                 estado: AC
+ *             docente:
+ *               summary: Crear usuario DOCENTE
+ *               value:
+ *                 login: jperez
+ *                 correo: jperez@escuela.com
+ *                 contrasena: Docente123!
+ *                 rolId: 2
+ *                 docenteId: 5
+ *                 requiereCambioContrasena: true
+ *                 estado: AC
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Usuario'
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 login:
+ *                   type: string
+ *                 correo:
+ *                   type: string
+ *                 rolId:
+ *                   type: integer
+ *                 estado:
+ *                   type: string
  *       400:
- *         description: Datos inválidos en la solicitud
+ *         description: Datos inválidos o usuario/correo ya existe
  *       500:
  *         description: Error del servidor
  */
