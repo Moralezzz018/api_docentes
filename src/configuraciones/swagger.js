@@ -1,8 +1,9 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 const path = require('path');
 
-// Usa el puerto de entorno o 3001 por defecto
+// Usa el puerto de entorno o 3002 por defecto
 const PORT = process.env.PORT || 3002;
+const API_URL = process.env.API_URL || `http://localhost:${PORT}`;
 
 const options = {
     definition: {
@@ -17,8 +18,8 @@ const options = {
         },
         servers: [
             {
-                url: `http://localhost:${PORT}/api`,
-                description: 'Servidor local',
+                url: `${API_URL}/api`,
+                description: process.env.NODE_ENV === 'production' ? 'Servidor de Producción (Railway)' : 'Servidor local',
             },
         ],
         components: {
