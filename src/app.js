@@ -41,6 +41,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173',
       'https://frontend-docentes.pages.dev',
+      'https://docentes.nmorales.site',
       /^https:\/\/.*\.frontend-docentes\.pages\.dev$/
     ];
     
