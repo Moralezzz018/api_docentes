@@ -418,15 +418,48 @@ exports.guardarAsistenciaMultiple = async (req, res) => {
 
         if (asistenciasExistentes.length > 0) {
             // Actualizar las asistencias existentes
+            const clase = await Clase.findByPk(claseId);
+            let correosEnviados = 0;
+            
             for (const asistencia of asistenciasExistentes) {
                 const nuevaInfo = asistenciasACrear.find(
                     a => a.estudianteId === asistencia.estudianteId
                 );
                 if (nuevaInfo) {
+                    const estadoAnterior = asistencia.estado;
                     await asistencia.update({
                         estado: nuevaInfo.estado,
                         descripcion: nuevaInfo.descripcion
                     });
+                    
+                    // Enviar correo si cambió el estado
+                    if (estadoAnterior !== nuevaInfo.estado) {
+                        const estudiante = estudiantesObjetivo.find(e => e.id === asistencia.estudianteId);
+                        if (estudiante && estudiante.correo) {
+                            const asunto = `Asistencia actualizada - ${clase?.nombre || 'Clase'}`;
+                            const contenidoInterno = `
+                                <h2>¡Hola ${estudiante.nombre}! 👋</h2>
+                                <p>Se ha actualizado tu asistencia.</p>
+                                <div class="info-box">
+                                    <p><strong>📚 Clase:</strong> ${clase?.nombre || 'Clase'}</p>
+                                    <p><strong>🔁 Estado anterior:</strong> ${estadoAnterior}</p>
+                                    <p><strong>✅ Estado nuevo:</strong> ${nuevaInfo.estado}</p>
+                                    <p><strong>🗓️ Fecha:</strong> ${new Date(asistencia.fecha).toLocaleDateString('es-ES')}</p>
+                                    ${nuevaInfo.descripcion ? `<p><strong>📝 Descripción:</strong> ${nuevaInfo.descripcion}</p>` : ''}
+                                </div>
+                            `;
+                            const contenido = generarPlantillaCorreo('Asistencia Actualizada', contenidoInterno);
+                            
+                            enviarCorreo(estudiante.correo, asunto, contenido)
+                                .then(() => {
+                                    correosEnviados++;
+                                    console.log(`✅ Correo enviado a ${estudiante.correo}`);
+                                })
+                                .catch(err => {
+                                    console.error(`❌ Error enviando correo a ${estudiante.correo}:`, err.message);
+                                });
+                        }
+                    }
                 }
             }
 
@@ -437,24 +470,88 @@ exports.guardarAsistenciaMultiple = async (req, res) => {
             );
 
             if (nuevasAsistencias.length > 0) {
-                await Asistencia.bulkCreate(nuevasAsistencias);
+                const nuevasCreadas = await Asistencia.bulkCreate(nuevasAsistencias);
+                
+                // Enviar correos para las nuevas asistencias
+                for (const asistencia of nuevasCreadas) {
+                    const estudiante = estudiantesObjetivo.find(e => e.id === asistencia.estudianteId);
+                    
+                    if (estudiante && estudiante.correo) {
+                        const asunto = `Asistencia registrada - ${clase?.nombre || 'Clase'}`;
+                        const contenidoInterno = `
+                            <h2>¡Hola ${estudiante.nombre}! 👋</h2>
+                            <p>Se ha registrado tu asistencia para la clase de hoy.</p>
+                            <div class="info-box">
+                                <p><strong>📚 Clase:</strong> ${clase?.nombre || 'Clase'}</p>
+                                <p><strong>✅ Estado:</strong> ${asistencia.estado}</p>
+                                <p><strong>🗓️ Fecha:</strong> ${new Date(asistencia.fecha).toLocaleDateString('es-ES')}</p>
+                                ${asistencia.descripcion ? `<p><strong>📝 Descripción:</strong> ${asistencia.descripcion}</p>` : ''}
+                            </div>
+                        `;
+                        const contenido = generarPlantillaCorreo('Asistencia Registrada', contenidoInterno);
+                        
+                        enviarCorreo(estudiante.correo, asunto, contenido)
+                            .then(() => {
+                                correosEnviados++;
+                                console.log(`✅ Correo enviado a ${estudiante.correo}`);
+                            })
+                            .catch(err => {
+                                console.error(`❌ Error enviando correo a ${estudiante.correo}:`, err.message);
+                            });
+                    }
+                }
             }
 
             return res.status(200).json({
                 mensaje: 'Asistencias actualizadas y/o creadas correctamente',
                 actualizadas: asistenciasExistentes.length,
-                creadas: nuevasAsistencias.length
+                creadas: nuevasAsistencias.length,
+                correosEnviados: correosEnviados
             });
         }
 
         // Si no existen asistencias previas, crear todas
         const asistenciasCreadas = await Asistencia.bulkCreate(asistenciasACrear);
 
+        // 📧 ENVIAR CORREOS A LOS ESTUDIANTES
+        const clase = await Clase.findByPk(claseId);
+        let correosEnviados = 0;
+        
+        for (const asistencia of asistenciasCreadas) {
+            const estudiante = estudiantesObjetivo.find(e => e.id === asistencia.estudianteId);
+            
+            if (estudiante && estudiante.correo) {
+                const asunto = `Asistencia registrada - ${clase?.nombre || 'Clase'}`;
+                const contenidoInterno = `
+                    <h2>¡Hola ${estudiante.nombre}! 👋</h2>
+                    <p>Se ha registrado tu asistencia para la clase de hoy.</p>
+                    <div class="info-box">
+                        <p><strong>📚 Clase:</strong> ${clase?.nombre || 'Clase'}</p>
+                        <p><strong>✅ Estado:</strong> ${asistencia.estado}</p>
+                        <p><strong>🗓️ Fecha:</strong> ${new Date(asistencia.fecha).toLocaleDateString('es-ES')}</p>
+                        ${asistencia.descripcion ? `<p><strong>📝 Descripción:</strong> ${asistencia.descripcion}</p>` : ''}
+                    </div>
+                    <p>Revisa la plataforma para ver tu historial completo de asistencias.</p>
+                `;
+                const contenido = generarPlantillaCorreo('Asistencia Registrada', contenidoInterno);
+                
+                enviarCorreo(estudiante.correo, asunto, contenido)
+                    .then(() => {
+                        correosEnviados++;
+                        console.log(`✅ Correo enviado a ${estudiante.correo}`);
+                    })
+                    .catch(err => {
+                        console.error(`❌ Error enviando correo a ${estudiante.correo}:`, err.message);
+                    });
+            }
+        }
+
         res.status(201).json({
             mensaje: 'Asistencias registradas correctamente',
             cantidad: asistenciasCreadas.length,
             periodoCalculado: periodo.nombre,
             parcialCalculado: parcial.nombre,
+            correosEnviados: correosEnviados,
             asistencias: asistenciasCreadas
         });
 
