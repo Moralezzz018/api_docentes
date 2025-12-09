@@ -39,7 +39,7 @@ const app = express();
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
-      'http://localhost:5173',
+      'http://localhost:3000',
       'https://frontend-docentes.pages.dev',
       'https://docentes.nmorales.site',
       'https://frontenddocentes-production.up.railway.app',
